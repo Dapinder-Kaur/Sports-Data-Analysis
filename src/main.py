@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import plotly.express as px
+import joblib
 
 st.title("Soccer Data App")
 
@@ -19,10 +20,10 @@ conn = st.connection('mysql', type='sql')
 #     st.write(f"Match ID: {row.id}, Home Team: {row.home_team},\
 #               Away Team: {row.away_team}")
 
-values = ['Charts','Results', 'Former Names', 'Goalscorers', 'Shootouts']
+values = ['Charts','Results', 'Former Names', 'Predictive Analysis']
 
-st.sidebar.title("Analysis and Questions")
-st.sidebar.write("Select an analysis or question to explore:")
+st.sidebar.title("Analysis Options")
+st.sidebar.write("Select an analysis to explore:")
 chosen_option = st.sidebar.selectbox("Choose an option", values)
 
 if chosen_option == values[0]:
@@ -57,19 +58,19 @@ if chosen_option == values[0]:
              soccer matches become draw at the end of regular time, so penalties are used to decide the winner.")
 
     @st.cache_data
-    def load_goalscorers_data():
+    def load_scorers_data():
         return conn.query('SELECT * from goalscorers ')
     
-    df_goalscorers = load_goalscorers_data()
+    df_scorers = load_scorers_data()
 
-    own_goal = df_goalscorers['own_goal'].sum()
-    penalty = df_goalscorers['penalty'].sum()
+    own_goal = df_scorers['own_goal'].sum()
+    penalty = df_scorers['penalty'].sum()
 
     data = {"Goal data": ['own_goal', 'penalty'], "counts": [own_goal, penalty]}  
     df_goalscorers_plot = pd.DataFrame(data)
 
     fig_plotly_goalscorers = px.bar(df_goalscorers_plot, x='Goal data', y='counts',\
-                                     title =f'Own Goals vs Penalties in total goal scored = {len(df_goalscorers)}', \
+                                     title =f'Own Goals vs Penalties in total goal scored = {len(df_scorers)}', \
                                         color_discrete_sequence=['lightblue'])
     st.plotly_chart(fig_plotly_goalscorers, use_container_width=True)
 
@@ -203,5 +204,44 @@ if chosen_option == values[2]:
             else:
                 st.write("No data found")
 
+
+
+if chosen_option == values[3]:
+    st.header("Match Outcome Prediction Model")
+
+    st.write('\n'
+    '\n')
+
+
+    st.write("Predict if the home team will win based on historical match data.\
+             \n Select the parameters below to make a prediction.")
     
+    st.write('\n'
+    '\n')
+
+    @st.cache_data 
+    def load_assets():
+        encoder = joblib.load('encoder.pkl')
+        model = joblib.load('model.pkl')
+        return encoder, model
     
+    encoder, model = load_assets()
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        home_team = st.selectbox("Home Team", encoder.categories_[0])
+
+
+    with col2:
+        away_team = st.selectbox("Away Team", encoder.categories_[1])
+  
+
+    input_df = pd.DataFrame([[home_team, away_team, '', '', '']], 
+                            columns=['home_team', 'away_team', 'tournament', 'city', 'country'])
+
+    # Transform and Predict
+    input_encoded = encoder.transform(input_df)
+    prediction = model.predict_proba(input_encoded)
+
+    st.markdown(f'<p style="color: brown; font-weight: bold;">{prediction[0][1]*100:.2f}% chance that Home Team wins.</p>', unsafe_allow_html=True)

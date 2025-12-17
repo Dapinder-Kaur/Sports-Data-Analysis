@@ -145,6 +145,10 @@ FROM former_names
 SELECT * FROM goalscorers
 ;
 
+SELECT * FROM goalscorers
+WHERE own_goal >= 1
+;
+
 SELECT DISTINCT team 
 FROM goalscorers
 ;
@@ -293,11 +297,7 @@ INNER JOIN goalscorers as g
 INNER JOIN shootouts as s
 	ON m.date=s.date
 ;
-
-
----------------------------------------------------------------------------------------------------
-
-
+-- The only drawback with this is that two matches can be played at the same date in two different countries for two different leagues
 
 ---------------------------------------------------------------------------------------------------
 
@@ -308,6 +308,11 @@ INNER JOIN shootouts as s
 
 
 ---------------------------------------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------------------------------------
+
 
 
 
