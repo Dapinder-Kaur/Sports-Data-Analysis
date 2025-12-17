@@ -1,4 +1,151 @@
 # streamlit app main file
 import streamlit as st
-st.write("Hello, World")
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+import plotly.express as px
 
+st.title("Soccer Data App")
+
+conn = st.connection('mysql', type='sql')
+
+# df = conn.query('SELECT * from match_data '\
+#                 'LIMIT 10;')
+
+# st.dataframe(df)
+
+# for row in df.itertuples():
+#     st.write(f"Match ID: {row.id}, Home Team: {row.home_team},\
+#               Away Team: {row.away_team}")
+
+values = ['Charts','Results', 'Former Names', 'Goalscorers', 'Shootouts']
+
+st.sidebar.title("Analysis and Questions")
+st.sidebar.write("Select an analysis or question to explore:")
+chosen_option = st.sidebar.selectbox("Choose an option", values)
+
+if chosen_option == values[0]:
+    @st.cache_data
+    def load_shootouts_data():
+        return conn.query('SELECT * from shootouts ')
+
+    df = load_shootouts_data()
+    st.header("Shootouts Data Visualization")
+
+    df['first_shooter_won'] = (df['first_shooter'] == df['winner'])
+
+    win_counts = df['first_shooter_won'].value_counts().reset_index()
+    # reset index to convert this to a dataframe
+
+    win_counts.columns = ['Outcome of the match (won/lost)', 'Count']
+    win_counts['Outcome of the match (won/lost)'] = ['Lost', 'Won']
+
+    # fig_plotly = px.scatter(df, x='home_team', y='away_team', color='winner')
+    st.write("In soccer the team that shoots first in a shootout has a higher chance of winning.\
+             This chart shows the number of times the first shooter won vs lost.")
+
+    fig_plotly = px.bar(win_counts, x='Outcome of the match (won/lost)', y='Count',\
+                         title='How many times first shooter won', color_discrete_sequence=['lightgreen'])
+    st.plotly_chart(fig_plotly, use_container_width=True)
+
+
+
+    st.header("Goalscorers Data Visualization")
+
+    st.write("Comparing the number of own goals vs penalties scored in matches. Most of the \
+             soccer matches become draw at the end of regular time, so penalties are used to decide the winner.")
+
+    @st.cache_data
+    def load_goalscorers_data():
+        return conn.query('SELECT * from goalscorers ')
+    
+    df_goalscorers = load_goalscorers_data()
+
+    own_goal = df_goalscorers['own_goal'].sum()
+    penalty = df_goalscorers['penalty'].sum()
+
+    data = {"Goal data": ['own_goal', 'penalty'], "counts": [own_goal, penalty]}  
+    df_goalscorers_plot = pd.DataFrame(data)
+
+    fig_plotly_goalscorers = px.bar(df_goalscorers_plot, x='Goal data', y='counts',\
+                                     title =f'Own Goals vs Penalties in total goal scored = {len(df_goalscorers)}', \
+                                        color_discrete_sequence=['lightblue'])
+    st.plotly_chart(fig_plotly_goalscorers, use_container_width=True)
+
+if chosen_option == values[1]:
+    st.header("Match Results Analysis")
+    st.write("Analyzing match results data...")
+    # Further analysis code here
+
+if chosen_option == values[2]:
+    st.header("Former Team Names Analysis")
+    st.write("Soccer teams changed their names over time, you can use this visualization \
+             to see current names by selecting the former names of players or vice versa.")
+    
+    @st.cache_data
+    def load_former_names_data():
+        return conn.query('SELECT * from former_names ')
+    df_former = load_former_names_data()
+
+    # Searching names
+    former_names_list = df_former['former'].unique()
+
+    former_current = st.selectbox("Do you want to select by former name or current name?\
+                                 ", ['Select by former name', 'Select by current name'])
+    
+    if former_current == 'Select by former name':
+        selected_former = st.selectbox("Select a former name of a player:\
+                                    ", former_names_list)
+        if selected_former:
+            output = df_former[df_former['former'] == selected_former]
+
+            if not output.empty:
+                current_name = output['current_name'].iloc[0]
+                start_date = output['start_date'].iloc[0]
+                end_date = output['end_date'].iloc[0]
+                
+                st.markdown(f"<p style='color: blue; font-weight: bold;'>Current Name: {current_name}</p>", unsafe_allow_html=True)
+
+                st.write(f"Name Change Duration: {start_date.date()} to {end_date.date()}")
+
+                fig = px.timeline(output, x_start="start_date", x_end="end_date", y="former", \
+                                title=f"Time during which the team still had used the name {selected_former}"\
+                                    , color_discrete_sequence=['purple'], height=300)
+                fig.update_yaxes(autorange="reversed") 
+                # Reverse the y-axis to have the earliest date at the top for better view
+
+                st.plotly_chart(fig, use_container_width=True)
+
+        else:
+            st.write("No data found")
+
+    else:
+        
+        selected_current = st.selectbox("Select current team name:\
+                                    ", df_former['current_name'].unique())
+        
+        if selected_current:
+            output = df_former[df_former['current_name'] == selected_current]
+
+            if not output.empty:
+                former_name = output['former'].iloc[0]
+                start_date = output['start_date'].iloc[0]
+                end_date = output['end_date'].iloc[0]
+                
+                st.markdown(f"<p style='color: blue; font-weight: bold;'>Former Name: {former_name}</p>", unsafe_allow_html=True)
+                st.write(f"Name Change Duration: {start_date.date()} to {end_date.date()}")
+
+                fig = px.timeline(output, x_start="start_date", x_end="end_date", y="current_name", \
+                                title=f"Time during which the team still had used the name {former_name}"\
+                                    , color_discrete_sequence=['purple'], height=300)
+                fig.update_yaxes(autorange="reversed") 
+                # Reverse the y-axis to have the earliest date at the top for better view
+
+                st.plotly_chart(fig, use_container_width=True)
+
+            else:
+                st.write("No data found")
+
+    
+    
