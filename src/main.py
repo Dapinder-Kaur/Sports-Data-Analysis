@@ -75,8 +75,64 @@ if chosen_option == values[0]:
 
 if chosen_option == values[1]:
     st.header("Match Results Analysis")
-    st.write("Analyzing match results data...")
-    # Further analysis code here
+    st.write("The match data contains results of soccer matches played in various leagues. \
+             \n Also, where the matches were played and if home team won or not, if yes by what score,  \
+             You can select various parameters to filter the data and analyze the results accordingly.  \
+             \n Also you can choose to predict the outcomes for future matches based on historical data.  ")
+    
+    st.write('\n'
+    '\n')
+
+
+    @st.cache_data
+    def load_match_data():
+        return conn.query('SELECT * from match_data ')
+    df_matches = load_match_data()
+
+    leagues = df_matches['tournament'].unique()
+    selected_league = st.selectbox("Select a league to filter the data:\
+                                ", leagues)
+    
+    st.write('\n'
+    '\n')
+
+    home_team = df_matches[df_matches['tournament'] == selected_league]
+    home_team = home_team['home_team'].unique()
+    selected_home_team = st.selectbox("Select a home team to filter the data:\
+                                    ", home_team)
+    
+    st.write('\n'
+    '\n')
+    selected_choice = st.selectbox("Do you want to see only matches where home team is playing in their country?\
+                ", ['Yes', 'No'])
+    
+
+    if selected_league and selected_home_team:
+        if selected_choice == 'No':
+            filtered_data = df_matches[(df_matches['tournament'] == selected_league) & (df_matches['home_team'] == selected_home_team)]
+        else:
+            filtered_data = df_matches[(df_matches['tournament'] == selected_league) & (df_matches['home_team'] == selected_home_team) & (df_matches['home_team'] == df_matches['country'])]
+
+        if not filtered_data.empty:
+
+            st.write(f"Displaying match results for league: {selected_league} and team: {selected_home_team}")
+            filtered_data.drop(columns=['id'], inplace=True)
+            st.dataframe(filtered_data)
+
+            st.markdown(f"<p style='color: green; font-weight: bold;'>Team {selected_home_team} won {filtered_data['team_win'].sum()}\
+                         out of {len(filtered_data)} matches played in {selected_league} league.</p>", unsafe_allow_html=True)
+            
+            fig = px.pie(filtered_data.replace({'team_win': {1: 'Home Team Win', 0: 'Away Team Win'}}),\
+                        names='team_win', title=f'Match Outcomes for {selected_home_team} in {selected_league} League', \
+                        color_discrete_sequence=px.colors.sequential.RdBu)
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+        else:
+            st.write("No data found for the selected filters.")
+        
+
+
 
 if chosen_option == values[2]:
     st.header("Former Team Names Analysis")
