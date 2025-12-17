@@ -231,13 +231,14 @@ if chosen_option == values[3]:
 
     with col1:
         home_team = st.selectbox("Home Team", encoder.categories_[0])
+        country = st.selectbox("Country", encoder.categories_[4])
 
 
     with col2:
         away_team = st.selectbox("Away Team", encoder.categories_[1])
-  
+        tournament = st.selectbox("Tournament", encoder.categories_[2])
 
-    input_df = pd.DataFrame([[home_team, away_team, '', '', '']], 
+    input_df = pd.DataFrame([[home_team, away_team, tournament, '', country]], 
                             columns=['home_team', 'away_team', 'tournament', 'city', 'country'])
 
     # Transform and Predict
