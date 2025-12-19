@@ -68,6 +68,10 @@ pip install -r requirements.txt
 streamlit run src/main.py
 ```
 
+![Screenshot-1](src/Assets/Screenshot1.png)
+![Screenshot-2](src/Assets/Screenshot2.png)
+![Screenshot-3](src/Assets/Screenshot3.png)
+
 ## Conclusion
 
 This project analyses the Sports data to understand trends, and the advantages to the home_team, first_shooter and goalscorers patterns.
